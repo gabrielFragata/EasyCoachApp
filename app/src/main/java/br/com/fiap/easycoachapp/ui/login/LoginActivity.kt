@@ -55,4 +55,56 @@ class LoginActivity: AppCompatActivity(), LoginContract {
     private fun soonMessage() {
         Toast.makeText(this, "Em breve...", Toast.LENGTH_SHORT).show()
     }
+
+    private fun signIn() {
+        val signInIntent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, RC_SIGN_IN)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                // Google Sign In was successful, authenticate with Firebase
+                val account = task.getResult(ApiException::class.java)!!
+                Log.d(TAG, "firebaseAuthWithGoogle:" + account.id)
+                firebaseAuthWithGoogle(account.idToken!!)
+            } catch (e: ApiException) {
+                // Google Sign In failed, update UI appropriately
+                Log.w(TAG, "Google sign in failed", e)
+            }
+        }
+    }
+
+
+    // Initialize Facebook Login button
+    callbackManager = CallbackManager.Factory.create()
+
+    buttonFacebookLogin.setReadPermissions("email", "public_profile")
+    buttonFacebookLogin.registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
+        override fun onSuccess(loginResult: LoginResult) {
+            Log.d(TAG, "facebook:onSuccess:$loginResult")
+            handleFacebookAccessToken(loginResult.accessToken)
+        }
+
+        override fun onCancel() {
+            Log.d(TAG, "facebook:onCancel")
+        }
+
+        override fun onError(error: FacebookException) {
+            Log.d(TAG, "facebook:onError", error)
+        }
+    })
+    // ...
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        // Pass the activity result back to the Facebook SDK
+        callbackManager.onActivityResult(requestCode, resultCode, data)
+    }
+
 }
+
